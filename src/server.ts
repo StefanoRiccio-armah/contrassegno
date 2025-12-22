@@ -1,7 +1,7 @@
-// src/server.ts
 
 import express from 'express';
 import type { Request, Response } from 'express';
+import glsRoutes from './routes/gls.routes'
 import axios from 'axios';
 import * as dotenv from 'dotenv';
 import cors from 'cors';
@@ -87,6 +87,8 @@ app.post('/handle-payment-change', async (req: Request, res: Response) => {
         });
     }
 });
+
+app.use('/api/gls', glsRoutes); // es: /api/gls/check-limit
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
