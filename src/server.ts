@@ -1,7 +1,6 @@
 // src/server.ts
 import express from 'express';
 import cors from 'cors';
-import serverless from 'serverless-http';
 import { config } from './config';
 
 import glsRoutes from './routes/gls.routes';
@@ -11,14 +10,28 @@ import pivaRoutes from './routes/piva.routes';
 
 const app = express();
 
-app.use(cors());
+// CORS
+const allowedOrigins = [
+  'http://localhost:3000',
+  'https://farmacia-test-1816752.mybigcommerce.com'
+];
+app.use(cors({ origin: allowedOrigins, credentials: true }));
+
+// Body parser
 app.use(express.json());
 
-// Rimuoviamo il prefisso /api perché Vercel lo aggiunge automaticamente
-app.use( paymentRoutes);
+// Routes
+app.use(paymentRoutes);
 app.use('/gls', glsRoutes);
 app.use('/vat', vatRoutes);
 app.use('/piva', pivaRoutes);
 
-// Esporta l'handler per Vercel
-export const handler = serverless(app);
+// Route di test
+app.post('/api/test', (req, res) => {
+  console.log('BODY RICEVUTO:', req.body);
+  res.json({ received: req.body });
+});
+
+// Avvio server
+const port = process.env.PORT || 3000;
+app.listen(port, () => console.log(`Server attivo su porta ${port}`));
