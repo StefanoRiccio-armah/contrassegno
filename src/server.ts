@@ -13,7 +13,8 @@ const app = express();
 // CORS
 const allowedOrigins = [
   'http://localhost:3000',
-  'https://farmacia-test-1816752.mybigcommerce.com'
+  'https://farmacia-test-1816752.mybigcommerce.com',
+  'https://stefanoriccio-armah.github.io'
 ];
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
