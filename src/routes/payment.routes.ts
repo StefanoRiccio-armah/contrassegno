@@ -5,6 +5,6 @@ import { handlePaymentChange } from '../controllers/payments.controller'
 const router = Router();
 
 // Definiamo la rotta e le associamo il suo controller
-router.post('/handle-payment-change', handlePaymentChange);
+router.post('/payment/handle-payment-change', handlePaymentChange);
 
 export default router;
