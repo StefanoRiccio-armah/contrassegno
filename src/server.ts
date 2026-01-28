@@ -1,7 +1,6 @@
-// src/server.ts
 import express from 'express';
 import cors from 'cors';
-import { config } from './config';
+//import { config } from './config';
 
 import glsRoutes from './routes/gls.routes';
 import paymentRoutes from './routes/payment.routes';
