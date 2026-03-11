@@ -20,16 +20,4 @@ export const config = {
       en: process.env.FEE_NAME_EN || 'Cash on Delivery',
     }
   },
-
-  // --- SEZIONE AGGIUNTA PER OPENAPI ---
-  // Questo nuovo oggetto contiene tutte le configurazioni
-  // necessarie per comunicare con le API di Openapi.
-  openapi: {
-    // Legge la chiave API segreta dal file .env
-    apiKey: process.env.OPENAPI_API_KEY,
-
-    // Legge l'URL di base dal file .env
-    baseUrl: process.env.OPENAPI_BASE_URL,
-  },
-  // --- FINE SEZIONE AGGIUNTA ---
 };
