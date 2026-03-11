@@ -10,6 +10,7 @@ import webhookRoutes from './routes/webhook.routes'
 
 const app = express();
 
+
 // ─── CORS ────────────────────────────────────────────────────────────────────
 const allowedOrigins = [
   'http://localhost:3000',
