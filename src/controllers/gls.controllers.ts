@@ -1,12 +1,14 @@
 import axios from 'axios';
 import { Request, Response } from 'express';
 import { getGLSToken } from '../utils/token';
+import { config } from '../config';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5.1 — Geolocalizzazione indirizzo
 // Converte un indirizzo testuale in coordinate lat/lng tramite HERE o Google.
 // Usato prima di searchParcelShops per ottenere le coordinate da passare alla ricerca.
 // ─────────────────────────────────────────────────────────────────────────────
+/*
 export async function geocodeAddress(req: Request, res: Response) {
   try {
     const { address } = req.query;
@@ -18,16 +20,17 @@ export async function geocodeAddress(req: Request, res: Response) {
       });
     }
 
-    // Usa HERE Geocoding API (alternativa: Google Maps Geocoding API)
-    const response = await axios.get(
-      'https://geocode.search.hereapi.com/v1/geocode',
-      {
-        params: {
-          q: address,
-          apiKey: process.env.HERE_API_KEY
-        }
-      }
-    );
+
+   const response = await axios.get(
+  'https://maps.googleapis.com/maps/api/geocode/json',
+  {
+    params: {
+      address,
+      key: config.google.mapsApiKey,
+      region: 'it'
+    }
+  }
+);
 
     const items = response.data?.items;
     if (!items || items.length === 0) {
@@ -62,6 +65,84 @@ export async function geocodeAddress(req: Request, res: Response) {
     }
   }
 }
+*/
+
+//sopra c'è funzione di geocoding con google API
+export async function geocodeAddress(req: Request, res: Response) {
+  try {
+    const { address } = req.query;
+
+    if (!address) {
+      return res.status(400).json({
+        success: false,
+        error: 'Il parametro "address" è richiesto'
+      });
+    }
+
+    // Tenta geocoding con indirizzo completo
+    let results = await callNominatim(address as string);
+
+    // Fallback: prova solo con le ultime parti (città, CAP, IT)
+    if (!results || results.length === 0) {
+      const parts = (address as string).split(',');
+      if (parts.length >= 3) {
+        const fallback = parts.slice(-3).join(',').trim();
+        console.log('[Geocoding] Fallback con:', fallback);
+        results = await callNominatim(fallback);
+      }
+    }
+
+    if (!results || results.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Indirizzo non trovato'
+      });
+    }
+
+    const lat = parseFloat(results[0].lat);
+    const lng = parseFloat(results[0].lon);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        lat,
+        lng,
+        label: results[0].display_name || ''
+      }
+    });
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      console.error('Errore geocoding Nominatim:', error.response?.data || error.message);
+      res.status(500).json({
+        success: false,
+        error: error.response?.data?.message || 'Errore durante la geolocalizzazione'
+      });
+    } else if (error instanceof Error) {
+      res.status(500).json({ success: false, error: error.message });
+    } else {
+      res.status(500).json({ success: false, error: 'Errore sconosciuto geocoding' });
+    }
+  }
+}
+
+// Helper per chiamare Nominatim
+async function callNominatim(query: string) {
+  const response = await axios.get(
+    'https://nominatim.openstreetmap.org/search',
+    {
+      params: {
+        q: query,
+        format: 'json',
+        limit: 1,
+        countrycodes: 'it'
+      },
+      headers: {
+        'User-Agent': 'gls-parcelshop-dev/1.0'
+      }
+    }
+  );
+  return response.data;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5.3 — Verifica dei limiti di spedizione
@@ -88,11 +169,21 @@ export async function checkLimit(req: Request, res: Response) {
     const response = await axios.post(
       `${process.env.GLS_API_URL}/gls-shop-italy-public-v1/v1/check/limit`,
       {
-        ca: isCashOnDelivery,   // "ca" = contrassegno (cash on delivery)
-        measures,
-        nOfPackages,
-        pv,
-        weight,
+        ca: isCashOnDelivery,         // contrassegno — "ca" è il nome GLS
+        cartItemList: [               // struttura richiesta dal PDF §5.3 Fig. 4
+          {
+            measures: [
+              {
+                depth: measures?.depth,
+                height: measures?.height,
+                length: measures?.length
+              }
+            ],
+            nOfPackages,
+            pv,
+            weight
+          }
+        ],
         plus,
         sprinterList,
         insuranceList
@@ -184,56 +275,68 @@ export async function searchParcelShops(req: Request, res: Response) {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STEP 5.5 — Add Parcel
-// Registra la spedizione associandola al Parcel Shop scelto dall'utente.
-// I tag PARTNER_SHOP_ID e SHOP_ID identificano univocamente lo shop nei sistemi GLS.
-// POST /gls/add-parcel
-// Body: { shipmentNumber, partnerId, parcelShopId }
-// ─────────────────────────────────────────────────────────────────────────────
+const GLS_SOAP_URL = 'https://labelservice.gls-italy.com/ilswebservice.asmx';
 export async function addParcel(req: Request, res: Response) {
   try {
-    const { shipmentNumber, partnerId, parcelShopId } = req.body;
+    const { partnerId, parcelShopId, nomeCliente, indirizzo, citta, provincia, cap, pesoReale, colli } = req.body;
 
-    if (!shipmentNumber || !partnerId || !parcelShopId) {
+    if (!partnerId || !parcelShopId) {
       return res.status(400).json({
         success: false,
-        error: '"shipmentNumber", "partnerId" e "parcelShopId" sono obbligatori'
+        error: '"partnerId" e "parcelShopId" sono obbligatori'
       });
     }
 
-    const token = await getGLSToken();
+    const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <AddParcel xmlns="https://labelservice.gls-italy.com/">
+      <XMLInfoParcel><![CDATA[
+        <Info>
+          <SedeGls>${process.env.GLS_SEDE_GLS}</SedeGls>
+          <CodiceClienteGls>${process.env.GLS_CODICE_CLIENTE}</CodiceClienteGls>
+          <PasswordClienteGls>${process.env.GLS_PASSWORD_CLIENTE}</PasswordClienteGls>
+          <Parcel>
+            <CodiceContrattoGls>${process.env.GLS_CODICE_CONTRATTO}</CodiceContrattoGls>
+            <RagioneSociale>${nomeCliente}</RagioneSociale>
+            <Indirizzo>${indirizzo}</Indirizzo>
+            <Localita>${citta}</Localita>
+            <Provincia>${provincia}</Provincia>
+            <Zipcode>${cap}</Zipcode>
+            <Colli>${colli || 1}</Colli>
+            <PesoReale>${pesoReale || 1}</PesoReale>
+            <TipoSpedizione>N</TipoSpedizione>
+            <TipoPorto>F</TipoPorto>
+            <TipoCollo>0</TipoCollo>
+            <SHOP_ID>${parcelShopId}</SHOP_ID>
+            <PARTNER_SHOP_ID>${partnerId}</PARTNER_SHOP_ID>
+            <GeneraPDF>S</GeneraPDF>
+            <ContatoreProgressivo>9999</ContatoreProgressivo>
+          </Parcel>
+        </Info>
+      ]]></XMLInfoParcel>
+    </AddParcel>
+  </soap12:Body>
+</soap12:Envelope>`;
 
-    const response = await axios.post(
-      `${process.env.GLS_API_URL}/gls-shop-italy-public-v1/v1/addParcel`,
-      {
-        shipmentNumber,
-        tags: {
-          PARTNER_SHOP_ID: partnerId,   // es. "GLS_IT" o "PRP_IT"
-          SHOP_ID: parcelShopId          // id univoco dello shop
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+    const response = await axios.post(GLS_SOAP_URL, soapBody, {
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8',
+        'SOAPAction': 'https://labelservice.gls-italy.com/AddParcel'
       }
-    );
-
-    res.status(200).json({
-      success: true,
-      data: response.data
     });
+
+    res.status(200).json({ success: true, data: response.data });
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
-      console.error('Errore in addParcel GLS:', error.response?.data || error.message);
+      console.error('Errore in addParcel SOAP:', error.response?.data || error.message);
       res.status(error.response?.status || 500).json({
         success: false,
-        error: error.response?.data?.message || 'Errore durante addParcel'
+        error: error.response?.data || 'Errore durante addParcel'
       });
     } else if (error instanceof Error) {
-      console.error('Errore generico addParcel GLS:', error.message);
       res.status(500).json({ success: false, error: error.message });
     } else {
       res.status(500).json({ success: false, error: 'Errore durante addParcel' });
@@ -242,12 +345,11 @@ export async function addParcel(req: Request, res: Response) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// STEP 5.6 — Close Work Day
+// STEP 5.6 — Close Work Day (SOAP)
 // Chiude e trasmette la spedizione alla sede GLS di competenza.
-// DEVE essere chiamato dopo addParcel per completare il flusso.
+// DEVE essere chiamato dopo addParcel.
 // POST /gls/close-work-day
 // Body: { shipmentNumber, partnerId, parcelShopId }
-// FIX: endpoint corretto è /v1/closeWorkDay (non /v1/addParcel come nella versione precedente)
 // ─────────────────────────────────────────────────────────────────────────────
 export async function closeWorkDay(req: Request, res: Response) {
   try {
@@ -260,27 +362,36 @@ export async function closeWorkDay(req: Request, res: Response) {
       });
     }
 
-    const token = await getGLSToken();
+    const soapBody = `<?xml version="1.0" encoding="utf-8"?>
+<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  <soap12:Body>
+    <CloseWorkDayByShipmentNumber xmlns="https://labelservice.gls-italy.com/">
+      <lab:xmlRequest>
+        <![CDATA[
+        <Info>
+          <CodiceClienteGls>${process.env.GLS_CODICE_CLIENTE}</CodiceClienteGls>
+          <PasswordClienteGls>${process.env.GLS_PASSWORD_CLIENTE}</PasswordClienteGls>
+          <Parcel>
+            <NumeroDiSpedizioneGLSdaConfermare>${shipmentNumber}</NumeroDiSpedizioneGLSdaConfermare>
+            <CloseWorkDayResult>0</CloseWorkDayResult>
+            <SHOP_ID>${parcelShopId}</SHOP_ID>
+            <PARTNER_SHOP_ID>${partnerId}</PARTNER_SHOP_ID>
+          </Parcel>
+        </Info>
+        ]]>
+      </lab:xmlRequest>
+    </CloseWorkDayByShipmentNumber>
+  </soap12:Body>
+</soap12:Envelope>`;
 
-    // ENDPOINT CORRETTO: /v1/closeWorkDay
-    // FIX rispetto alla versione precedente che usava /v1/addParcel per errore
-    // Ref: MU407 §5.6 Fig. 8
-    const response = await axios.post(
-      `${process.env.GLS_API_URL}/gls-shop-italy-public-v1/v1/closeWorkDay`,
-      {
-        shipmentNumber,
-        tags: {
-          PARTNER_SHOP_ID: partnerId,
-          SHOP_ID: parcelShopId
-        }
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+    const response = await axios.post(GLS_SOAP_URL, soapBody, {
+      headers: {
+        'Content-Type': 'application/soap+xml; charset=utf-8',
+        'SOAPAction': 'https://labelservice.gls-italy.com/CloseWorkDayByShipmentNumber'
       }
-    );
+    });
 
     res.status(200).json({
       success: true,
@@ -288,13 +399,13 @@ export async function closeWorkDay(req: Request, res: Response) {
     });
   } catch (error: unknown) {
     if (axios.isAxiosError(error)) {
-      console.error('Errore in closeWorkDay GLS:', error.response?.data || error.message);
+      console.error('Errore in closeWorkDay SOAP:', error.response?.data || error.message);
       res.status(error.response?.status || 500).json({
         success: false,
-        error: error.response?.data?.message || 'Errore durante closeWorkDay'
+        error: error.response?.data || 'Errore durante closeWorkDay'
       });
     } else if (error instanceof Error) {
-      console.error('Errore generico closeWorkDay GLS:', error.message);
+      console.error('Errore generico closeWorkDay:', error.message);
       res.status(500).json({ success: false, error: error.message });
     } else {
       res.status(500).json({ success: false, error: 'Errore durante closeWorkDay' });

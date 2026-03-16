@@ -20,4 +20,7 @@ export const config = {
       en: process.env.FEE_NAME_EN || 'Cash on Delivery',
     }
   },
+   google: {
+    mapsApiKey: process.env.GOOGLE_MAPS_API_KEY,
+  },
 };
