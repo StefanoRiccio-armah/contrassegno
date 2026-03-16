@@ -17,7 +17,7 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://farmacia-test-1816752.mybigcommerce.com',
   'https://stefanoriccio-armah.github.io',
-   'https://glucosic-dylan-ectoblastic.ngrok-free.app'
+   'https://glucosic-dylan-ectoblastic.ngrok-free.dev'
 ];
 
 app.use(cors({ origin: allowedOrigins, credentials: true }));

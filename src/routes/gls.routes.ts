@@ -4,7 +4,8 @@ import {
   checkLimit,
   searchParcelShops,
   addParcel,
-  closeWorkDay
+  closeWorkDay,
+  saveShopSelection
 } from '../controllers/gls.controllers';
 
 const router = Router();
@@ -29,5 +30,7 @@ router.post('/add-parcel', addParcel);
 // STEP 5.6 — Chiudi e trasmetti spedizione alla sede GLS
 // POST /gls/close-work-day
 router.post('/close-work-day', closeWorkDay);
+
+router.post('/save-shop-selection', saveShopSelection);
 
 export default router;
