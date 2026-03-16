@@ -431,26 +431,12 @@ export async function saveShopSelection(req: Request, res: Response) {
     const storeHash = process.env.BIGCOMMERCE_STORE_HASH;
     const accessToken = process.env.BIGCOMMERCE_ACCESS_TOKEN;
 
-  const metafields = [
-    { 
-        key: 'gls_partner_id', 
-        value: partnerId, 
-        namespace: 'gls', 
-        permission_set: 'write_and_sf_access'  // ← non 'write'
-    },
-    { 
-        key: 'gls_parcel_shop_id', 
-        value: parcelShopId, 
-        namespace: 'gls', 
-        permission_set: 'write_and_sf_access'  // ← non 'write'
-    },
-    ...(shipmentNumber ? [{
-        key: 'gls_shipment_number',
-        value: shipmentNumber,
-        namespace: 'gls',
-        permission_set: 'write_and_sf_access'  // ← non 'write'
-    }] : [])
-];
+      const metafields = [
+      { key: 'gls_partner_id',      value: partnerId,      namespace: 'gls', permission_set: 'write' },
+      { key: 'gls_parcel_shop_id',  value: parcelShopId,   namespace: 'gls', permission_set: 'write' },
+      ...(shipmentNumber ? [{ key: 'gls_shipment_number', value: shipmentNumber, namespace: 'gls', permission_set: 'write' }] : [])
+    ];
+
 
     // Crea ogni metafield sull'ordine BigCommerce
     await Promise.all(
