@@ -152,6 +152,7 @@ async function callNominatim(query: string) {
 // Body: { isCashOnDelivery, measures, nOfPackages, pv, weight, plus, sprinterList, insuranceList }
 // ─────────────────────────────────────────────────────────────────────────────
 export async function checkLimit(req: Request, res: Response) {
+  console.log('[checkLimit] Body ricevuto:', JSON.stringify(req.body));
   try {
     const {
       isCashOnDelivery = false,
