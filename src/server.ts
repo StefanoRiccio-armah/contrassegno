@@ -20,6 +20,14 @@ const allowedOrigins = [
    'https://glucosic-dylan-ectoblastic.ngrok-free.dev'
 ];
 
+// ─── Health check ────────────────────────────────────────────────────────────
+app.get('/health', (_req, res) => res.json({ status: 'ok' }));
+
+app.use((_req, res, next) => {
+  res.setHeader('ngrok-skip-browser-warning', 'true');
+  next();
+});
+
 app.use(cors({ origin: allowedOrigins, credentials: true }));
 
 // ─── Body parser ─────────────────────────────────────────────────────────────
@@ -29,9 +37,6 @@ app.use(express.json());
 app.use(paymentRoutes);
 app.use('/gls', glsRoutes);
 app.use('/webhooks', webhookRoutes);  // BigCommerce webhook handler
-
-// ─── Health check ────────────────────────────────────────────────────────────
-app.get('/health', (_req, res) => res.json({ status: 'ok' }));
 
 // ─── Avvio server ────────────────────────────────────────────────────────────
 const port = process.env.PORT || 3000;
