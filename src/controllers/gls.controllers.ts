@@ -6,6 +6,100 @@ import { getOrder, getOrderShippingAddress, saveOrderMetafields } from '../utils
 
 const GLS_SOAP_URL = 'https://labelservice.gls-italy.com/ilswebservice.asmx';
 
+/*
+export async function geocodeAddress(req: Request, res: Response) {
+  try {
+    const { address } = req.query;
+
+    if (!address || typeof address !== 'string') {
+      return res.status(400).json({
+        success: false,
+        error: 'Il parametro "address" è richiesto'
+      });
+    }
+
+    const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (!apiKey) {
+      return res.status(500).json({
+        success: false,
+        error: 'GOOGLE_MAPS_API_KEY non configurata'
+      });
+    }
+
+    let result = await callGoogleGeocode(address, apiKey);
+
+    // Fallback leggero, come nel tuo codice attuale
+    if (!result) {
+      const parts = address.split(',').map(p => p.trim()).filter(Boolean);
+      if (parts.length >= 3) {
+        result = await callGoogleGeocode(parts.slice(-3).join(', '), apiKey);
+      }
+    }
+
+    if (!result) {
+      return res.status(404).json({
+        success: false,
+        error: 'Indirizzo non trovato'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        lat: result.geometry.location.lat,
+        lng: result.geometry.location.lng,
+        label: result.formatted_address || ''
+      }
+    });
+  } catch (error: unknown) {
+    handleError(res, error);
+  }
+}
+
+async function callGoogleGeocode(address: string, apiKey: string) {
+  const response = await axios.get('https://maps.googleapis.com/maps/api/geocode/json', {
+    params: {
+      address,
+      key: apiKey,
+      region: 'it',
+      language: 'it'
+      // components: 'country:IT' // opzionale, vedi nota sotto
+    },
+    timeout: 10000
+  });
+
+  const data = response.data;
+
+  if (data.status === 'OK' && Array.isArray(data.results) && data.results.length > 0) {
+    return data.results[0];
+  }
+
+  if (data.status === 'ZERO_RESULTS') {
+    return null;
+  }
+
+  throw new Error(
+    `Google Geocoding API error: ${data.status}${data.error_message ? ` - ${data.error_message}` : ''}`
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Helper errori centralizzato
+// ─────────────────────────────────────────────────────────────────────────────
+function handleError(res: Response, error: unknown) {
+  if (axios.isAxiosError(error)) {
+    console.error('Errore Axios:', error.response?.data || error.message);
+    return res.status(error.response?.status || 500).json({
+      success: false,
+      error: error.response?.data?.error_message || error.response?.data?.message || error.message
+    });
+  } else if (error instanceof Error) {
+    return res.status(500).json({ success: false, error: error.message });
+  } else {
+    return res.status(500).json({ success: false, error: 'Errore sconosciuto' });
+  }
+} */
+
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5.1 — Geolocalizzazione indirizzo
 // ─────────────────────────────────────────────────────────────────────────────
