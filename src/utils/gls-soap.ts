@@ -15,10 +15,12 @@ export async function glsAddParcel(params: {
   parcelShopId: string;
   partnerId: string;
 }): Promise<string> {
-  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  const soapBody =
+  `<?xml version="1.0" encoding="utf-8"?>
+  <soap12:Envelope
+   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+   xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+   xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
   <soap12:Body>
     <AddParcel xmlns="https://labelservice.gls-italy.com/">
       <XMLInfoParcel><![CDATA[
@@ -71,10 +73,12 @@ export async function glsCloseWorkDay(params: {
   parcelShopId: string;
   partnerId: string;
 }): Promise<void> {
-  const soapBody = `<?xml version="1.0" encoding="utf-8"?>
-<soap12:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-                 xmlns:xsd="http://www.w3.org/2001/XMLSchema"
-                 xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
+  const soapBody =
+   `<?xml version="1.0" encoding="utf-8"?>
+    <soap12:Envelope
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:soap12="http://www.w3.org/2003/05/soap-envelope">
   <soap12:Body>
     <CloseWorkDayByShipmentNumber xmlns="https://labelservice.gls-italy.com/">
       <_xmlRequest><![CDATA[<Info>

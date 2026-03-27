@@ -7,7 +7,6 @@ dotenv.config();
 // Cache del token GLS
 // Il token ha durata massima 4 ore (14400 secondi) e supporta max 100.000 request.
 // Il caching evita di richiedere un nuovo token ad ogni chiamata API.
-// Ref: MU407 §5.2
 // ─────────────────────────────────────────────────────────────────────────────
 let glsToken: string | null = null;
 let tokenExpiry: number = 0;
@@ -19,7 +18,6 @@ export async function getGLSToken(): Promise<string> {
   }
 
   try {
-    // Ref: MU407 §5.2 — POST https://api.gls-group.net/oauth2/v2/token
     // Parametri obbligatori: grant_type, client_id, client_secret
     const response = await axios.post(
       process.env.GLS_AUTH_URL!,

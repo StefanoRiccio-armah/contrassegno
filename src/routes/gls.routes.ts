@@ -11,7 +11,7 @@ import {
 const router = Router();
 
 // STEP 5.1 — Geolocalizzazione indirizzo
-// Converte indirizzo in lat/lng tramite HERE API
+// Converte indirizzo in lat/lng tramite nominatim/google API
 // GET /gls/geocode?address=Via Roma 1, Milano
 router.get('/geocode', geocodeAddress);
 

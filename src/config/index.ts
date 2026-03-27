@@ -1,5 +1,3 @@
-// index.ts (versione aggiornata)
-
 import * as dotenv from 'dotenv';
 dotenv.config();
 

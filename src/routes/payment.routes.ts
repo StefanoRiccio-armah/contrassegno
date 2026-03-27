@@ -1,4 +1,3 @@
-// src/routes/payment.routes.ts
 import { Router } from 'express';
 import { handlePaymentChange } from '../controllers/payments.controller'
 

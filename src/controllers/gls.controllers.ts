@@ -100,6 +100,15 @@ function handleError(res: Response, error: unknown) {
   }
 } */
 
+  async function callNominatim(query: string) {
+  const response = await axios.get('https://nominatim.openstreetmap.org/search', {
+    params: { q: query, format: 'json', limit: 1, countrycodes: 'it' },
+    headers: { 'User-Agent': 'gls-parcelshop-dev/1.0' }
+  });
+  return response.data;
+}
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5.1 — Geolocalizzazione indirizzo
 // ─────────────────────────────────────────────────────────────────────────────
@@ -126,13 +135,6 @@ export async function geocodeAddress(req: Request, res: Response) {
   }
 }
 
-async function callNominatim(query: string) {
-  const response = await axios.get('https://nominatim.openstreetmap.org/search', {
-    params: { q: query, format: 'json', limit: 1, countrycodes: 'it' },
-    headers: { 'User-Agent': 'gls-parcelshop-dev/1.0' }
-  });
-  return response.data;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STEP 5.3 — Verifica dei limiti di spedizione
